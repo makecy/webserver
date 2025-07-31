@@ -1,0 +1,6 @@
+		
+chris		server looks for "\r\n\r\n" or "\n\n" and then just handles the buffer immidiately,
+				instead of waiting for Content-Length amount of bytes within the body. we should
+				wait for the complete request body, so we can handle file uploads and CGI later.
+				nginx seems to respond immediately too, but it reads request bodies, when actually
+				needed.
