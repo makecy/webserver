@@ -14,6 +14,10 @@
 #include <cstring>
 #include <cerrno>
 
+#include "WebServer.hpp"
+#include "Config.hpp"
+#include "utils.hpp"
+
 class Config;
 class HttpRequest;
 

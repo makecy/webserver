@@ -39,3 +39,7 @@ void log_error(const std::string &message);
 #else
 	#define LOG_ERROR(message) do {} while(0)
 #endif
+
+// string utils
+std::string int_to_string(int value);
+std::string size_t_to_string(size_t value);

@@ -6,7 +6,7 @@
 /*   By: christian <christian@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/03 06:41:01 by christian         #+#    #+#             */
-/*   Updated: 2025/08/03 07:05:17 by christian        ###   ########.fr       */
+/*   Updated: 2025/08/03 07:59:03 by christian        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,4 +41,16 @@ void log_error(const std::string &message)
 {
 	std::string timestamp = get_timestamp();
 	std::cerr << "[" << timestamp << "]:[\033[31mERROR\033[0m]   " << message << std::endl;
+}
+
+std::string int_to_string(int value){
+	std::ostringstream oss;
+	oss << value;
+	return oss.str();
+}
+
+std::string size_t_to_string(size_t value){
+	std::ostringstream oss;
+	oss << value;
+	return oss.str();
 }

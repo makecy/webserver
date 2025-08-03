@@ -4,6 +4,12 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <algorithm>
+
+#include "WebServer.hpp"
 
 struct ServerConfig {
     std::string host;
@@ -18,6 +24,8 @@ struct ServerConfig {
 class Config {
 private:
     std::vector<ServerConfig> _servers;
+    void parseSimpleDirective(const std::string& line, ServerConfig& server);
+    ServerConfig getDefaultServerConfig();
     
 public:
     Config();
