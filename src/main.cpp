@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
     std::string config_file = "config/default.conf";
     
     if (argc > 2) {
-        std::cerr << "Usage: " << argv[0] << " [configuration file]" << std::endl;
+        log_error("usage: ./webserv <config file>");
         return 1;
     }
     
@@ -17,11 +17,11 @@ int main(int argc, char** argv) {
     WebServer server;
     
     if (!server.initialize(config_file)) {
-        std::cerr << "Failed to initialize server" << std::endl;
+        log_error("failed to initialize");
         return 1;
     }
     
-    std::cout << "Starting webserver..." << std::endl;
+    log_info("starting webserver...");
     server.run();
     
     return 0;
