@@ -30,9 +30,8 @@ void Config::parseSimpleDirective(const std::string& line, ServerConfig& server)
 	std::string key, value;
 	iss >> key >> value;
 
-	if (!value.empty() && value[value.length() - 1] == ';') {
+	if (!value.empty() && value[value.length() - 1] == ';')
 		value.erase(value.length() - 1);
-	}
 	
 	if (key == "listen") {
 		// handle host and port
@@ -53,9 +52,8 @@ void Config::parseSimpleDirective(const std::string& line, ServerConfig& server)
 	} else if (key == "index") {
 		server.index = value;
 		log_debug("parsed index: " + value);
-	} else {
+	} else
 		log_debug("unknown dir: " + key);
-	}
 }
 
 bool Config::parseConfigFile(const std::string& filename) {
@@ -64,37 +62,29 @@ bool Config::parseConfigFile(const std::string& filename) {
 		log_error("cant open config file: " + filename);
 		return false;
 	}
-	
+
 	std::string line;
 	ServerConfig current_server;
 	bool in_server_block = false;
+	int line_number = 0;
 
 	while (std::getline(file, line)) {
-		// Skip empty lines and comments
-		if (line.empty() || line[0] == '#' || line.find_first_not_of(" \t") == std::string::npos) // jump empty lines and comments
+		line_number++;
+		if (shouldSkipLine(line))
 			continue;
-		if (line.find("server {") != std::string::npos) {
-			in_server_block = true;
-			current_server = getDefaultServerConfig();
-			log_debug("found server block");
-			continue;
-		}
-		if (line.find("}") != std::string::npos && in_server_block) {
-			in_server_block = false;
-			_servers.push_back(current_server);
-			log_info("parsed server: " + current_server.host + ":" + int_to_string(current_server.port));
+		if (isServerStart(line)) {
+			if (!handleServerStart(in_server_block, current_server, line_number, file))
+				return false;
 			continue;
 		}
-		
-		if (in_server_block)
-			parseSimpleDirective(line, current_server);
+		if (isServerEnd(line)) {
+			if (!handleServerEnd(in_server_block, current_server, line_number, file))
+				return false;
+			continue;
+		}
+		if (!handleDirective(in_server_block, line, current_server, line_number, file))
+			return false;
 	}
-	
 	file.close();
-	if (_servers.empty()) {
-		log_error("no server blocks found in config");
-		return false;
-	}
-	log_info("success parsing " + size_t_to_string(_servers.size()) + " server(s)");
-	return true;
+	return finalizeConfig(in_server_block);
 }

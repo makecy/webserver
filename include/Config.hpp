@@ -26,6 +26,16 @@ private:
     std::vector<ServerConfig> _servers;
     void parseSimpleDirective(const std::string& line, ServerConfig& server);
     ServerConfig getDefaultServerConfig();
+    bool finalizeConfig(bool in_server_block);
+
+    //conf utility
+    bool shouldSkipLine(const std::string& line);
+    bool isServerStart(const std::string& line);
+    bool isServerEnd(const std::string& line);
+    bool handleServerStart(bool& in_server_block, ServerConfig& current_server, int line_number, std::ifstream& file);
+    bool handleServerEnd(bool& in_server_block, ServerConfig& current_server, int line_number, std::ifstream& file);
+    bool handleDirective(bool in_server_block, const std::string& line, ServerConfig& current_server, int line_number, std::ifstream& file);
+    std::string trim(const std::string& str);
     
 public:
     Config();
