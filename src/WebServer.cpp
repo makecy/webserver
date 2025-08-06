@@ -473,12 +473,124 @@ std::string WebServer::generateSuccessResponse(const std::string& content, const
     return response.str();
 }
 
-std::string WebServer::handlePostRequest(const HttpRequest& /* request */) {
-    return generateErrorResponse(501, "Not Implemented");
+std::string WebServer::handlePostRequest(const HttpRequest& request) {
+    std::string uri = request.getUri();
+    std::string body = request.getBody();
+    
+    std::cout << "POST request for: " << uri << std::endl;
+    std::cout << "Body length: " << body.length() << std::endl;
+    
+    if (uri.find("/upload") == 0) {
+        return handleFileUpload(request);
+    }
+    
+    if (uri.find("/form") == 0) {
+        return handleFormSubmission(request);
+    }
+    
+    return handlePostEcho(request);
 }
 
-std::string WebServer::handleDeleteRequest(const HttpRequest& /* request */) {
-    return generateErrorResponse(501, "Not Implemented");
+std::string WebServer::handleDeleteRequest(const HttpRequest& request) {
+    std::string uri = request.getUri();
+    std::string file_path = getFilePath(uri);
+    
+    std::cout << "DELETE request for: " << file_path << std::endl;
+    
+    if (!fileExists(file_path)) {
+        return generateErrorResponse(404, "Not Found");
+    }
+    
+    if (isDirectory(file_path)) {
+        return generateErrorResponse(403, "Forbidden");
+    }
+    
+    std::string parent_dir = file_path.substr(0, file_path.find_last_of('/'));
+    if (access(parent_dir.c_str(), W_OK) != 0) {
+        return generateErrorResponse(403, "Forbidden");
+    }
+    
+    if (unlink(file_path.c_str()) == 0) {
+
+        std::ostringstream response;
+        response << "HTTP/1.1 200 OK\r\n";
+        response << "Content-Type: text/html\r\n";
+        response << "Content-Length: 47\r\n";
+        response << "Connection: close\r\n";
+        response << "Server: Webserv/1.0\r\n";
+        response << "\r\n";
+        response << "<html><body><h1>File deleted</h1></body></html>";
+        return response.str();
+    } else {
+        return generateErrorResponse(500, "Internal Server Error");
+    }
+}
+
+
+std::string WebServer::handleFileUpload(const HttpRequest& request) {
+    std::string body = request.getBody();
+    std::string content_type = request.getHeader("Content-Type");
+    
+    std::string upload_dir = "./www/uploads";
+    mkdir(upload_dir.c_str(), 0755);
+    
+    std::ostringstream filename;
+    filename << "upload_" << time(NULL) << ".txt";
+    
+    std::string file_path = upload_dir + "/" + filename.str();
+    
+    std::ofstream outfile(file_path.c_str());
+    if (!outfile.is_open()) {
+        return generateErrorResponse(500, "Internal Server Error");
+    }
+    
+    outfile << body;
+    outfile.close();
+    
+    std::ostringstream response;
+    response << "HTTP/1.1 201 Created\r\n";
+    response << "Content-Type: text/html\r\n";
+    response << "Location: /uploads/" << filename.str() << "\r\n";
+    response << "Connection: close\r\n";
+    response << "Server: Webserv/1.0\r\n";
+    response << "\r\n";
+    response << "<html><body><h1>File uploaded successfully</h1>";
+    response << "<p>Saved as: " << filename.str() << "</p></body></html>";
+    
+    std::string resp = response.str();
+    response.str("");
+    response << "Content-Length: " << (resp.length() - resp.find("\r\n\r\n") - 4) << "\r\n";
+    
+    return resp;
+}
+
+std::string WebServer::handleFormSubmission(const HttpRequest& request) {
+    std::string body = request.getBody();
+    
+    std::cout << "Form data received: " << body << std::endl;
+    
+    std::ostringstream html;
+    html << "<html><body>";
+    html << "<h1>Form Submission Received</h1>";
+    html << "<p>Data: " << body << "</p>";
+    html << "<a href='/'>Back to home</a>";
+    html << "</body></html>";
+    
+    return generateSuccessResponse(html.str(), "text/html");
+}
+
+std::string WebServer::handlePostEcho(const HttpRequest& request) {
+    std::string body = request.getBody();
+    
+    std::ostringstream html;
+    html << "<html><body>";
+    html << "<h1>POST Request Received</h1>";
+    html << "<p>URI: " << request.getUri() << "</p>";
+    html << "<p>Body length: " << body.length() << " bytes</p>";
+    html << "<pre>" << body << "</pre>";
+    html << "</body></html>";
+    
+    return generateSuccessResponse(html.str(), "text/html");
 }
 
 void WebServer::cleanup() {

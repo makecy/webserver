@@ -55,6 +55,9 @@ class WebServer {
     std::string generateSuccessResponse(const std::string& content, const std::string& content_type);
 
     std::string handleHeadRequest(const HttpRequest& request);
+    std::string handleFileUpload(const HttpRequest& request);
+    std::string handleFormSubmission(const HttpRequest& request);
+    std::string handlePostEcho(const HttpRequest& request);
 
 
 public:

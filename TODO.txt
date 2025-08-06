@@ -1,6 +1,10 @@
 
 working																				author
 
+ana		added POST/DELETE support and file operations, server implements file
+		uploads, form processing, file deletation and request routing based on
+		URI patterns.
+
 ana		added proper GET/HEAD request handling, added 404/403 error responses,
 		static file serving from www/ directory
 
