@@ -254,11 +254,10 @@ std::string WebServer::generateResponse(const HttpRequest& request) {
     
     std::cout << "Processing: " << method << " " << uri << std::endl;
     
-    // Handle different HTTP methods
     if (request.getMethod() == GET) {
         return handleGetRequest(request);
-    } else if (request.getMethod() == HEAD) {        // Add this
-        return handleHeadRequest(request);           // Add this
+    } else if (request.getMethod() == HEAD) {
+        return handleHeadRequest(request);
     } else if (request.getMethod() == POST) {
         return handlePostRequest(request);
     } else if (request.getMethod() == DELETE) {
@@ -330,7 +329,6 @@ std::string WebServer::getContentType(const std::string& file_path) {
     
     std::string extension = file_path.substr(dot_pos);
     
-    // Convert to lowercase for comparison
     for (size_t i = 0; i < extension.length(); ++i) {
         extension[i] = std::tolower(extension[i]);
     }
@@ -349,22 +347,18 @@ std::string WebServer::getContentType(const std::string& file_path) {
 }
 
 std::string WebServer::getFilePath(const std::string& uri) {
-    // Get document root from config (assuming you have this)
-    std::string root = "./www"; // Default, should come from config
+    std::string root = "./www";
     
-    // Handle root URI
     if (uri == "/") {
         return root + "/index.html";
     }
     
-    // Prevent directory traversal attacks
     std::string clean_uri = uri;
     size_t pos = 0;
     while ((pos = clean_uri.find("../", pos)) != std::string::npos) {
         clean_uri.erase(pos, 3);
     }
-    
-    // Remove double slashes
+
     pos = 0;
     while ((pos = clean_uri.find("//", pos)) != std::string::npos) {
         clean_uri.erase(pos, 1);
@@ -394,7 +388,6 @@ std::string WebServer::readFile(const std::string& file_path) {
 		return "";
 	}
 	
-	// Read file contents efficiently
 	file.seekg(0, std::ios::end);
 	std::streamsize size = file.tellg();
 	file.seekg(0, std::ios::beg);
@@ -413,22 +406,18 @@ std::string WebServer::handleGetRequest(const HttpRequest& request) {
     std::string uri = request.getUri();
     std::string file_path = getFilePath(uri);
     
-    // Check if file exists
     if (!fileExists(file_path)) {
         return generateErrorResponse(404, "Not Found");
     }
     
-    // Handle directory requests
     if (isDirectory(file_path)) {
         return handleDirectoryRequest(file_path, uri);
     }
     
-    // Check if file is readable
     if (access(file_path.c_str(), R_OK) != 0) {
         return generateErrorResponse(403, "Forbidden");
     }
     
-    // Read and serve the file
     std::string content = readFile(file_path);
     if (content.empty() && fileExists(file_path)) {
         return generateErrorResponse(500, "Internal Server Error");
@@ -438,7 +427,6 @@ std::string WebServer::handleGetRequest(const HttpRequest& request) {
 }
 
 std::string WebServer::handleDirectoryRequest(const std::string& dir_path, const std::string& /* uri */) {
-    // Try to find index files (index.html, index.htm)
     std::vector<std::string> index_files;
     index_files.push_back("index.html");
     index_files.push_back("index.htm");
@@ -457,23 +445,18 @@ std::string WebServer::handleDirectoryRequest(const std::string& dir_path, const
             }
         }
     }
-    
-    // No index file found
     return generateErrorResponse(404, "Not Found");
 }
 
 std::string WebServer::handleHeadRequest(const HttpRequest& request) {
-    // HEAD is like GET but without the response body
     std::string response = handleGetRequest(request);
-    
-    // Find the end of headers (double CRLF)
+
     size_t header_end = response.find("\r\n\r\n");
     if (header_end != std::string::npos) {
-        // Return only headers + the double CRLF (no body)
         return response.substr(0, header_end + 4);
     }
     
-    return response; // Fallback if parsing fails
+    return response;
 }
 
 std::string WebServer::generateSuccessResponse(const std::string& content, const std::string& content_type) {
@@ -491,12 +474,10 @@ std::string WebServer::generateSuccessResponse(const std::string& content, const
 }
 
 std::string WebServer::handlePostRequest(const HttpRequest& /* request */) {
-    // For now, return 501 Not Implemented
     return generateErrorResponse(501, "Not Implemented");
 }
 
 std::string WebServer::handleDeleteRequest(const HttpRequest& /* request */) {
-    // For now, return 501 Not Implemented
     return generateErrorResponse(501, "Not Implemented");
 }
 

@@ -74,7 +74,7 @@ std::string HttpRequest::methodToString() const {
         case GET: return "GET";
         case POST: return "POST";
         case DELETE: return "DELETE";
-        case HEAD: return "HEAD";     // Add this line
+        case HEAD: return "HEAD";
         case UNKNOWN: return "UNKNOWN";
     }
     return "UNKNOWN";

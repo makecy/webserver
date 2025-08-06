@@ -1,7 +1,8 @@
 
 working																				author
 
-ana		added proper GET/HEAD request handling added 404/403 error responses 
+ana		added proper GET/HEAD request handling, added 404/403 error responses,
+		static file serving from www/ directory
 
 ana		currently trying to fix generateResponse to map the request URI to a file 
 		path using the server's root and index from config.
