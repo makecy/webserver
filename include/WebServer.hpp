@@ -15,6 +15,8 @@
 #include <cerrno>
 #include <cctype>
 #include <sstream>
+#include <fstream>
+#include <sys/stat.h>
 
 #include "WebServer.hpp"
 #include "Config.hpp"
@@ -39,6 +41,21 @@ class WebServer {
     std::string getStatusMessage(int code);
     std::string toString(size_t value);
     size_t getContentLength(const std::string& headers);
+
+    std::string getContentType(const std::string& file_path);
+    std::string getFilePath(const std::string& uri);
+    bool fileExists(const std::string& path);
+    bool isDirectory(const std::string& path);
+    std::string readFile(const std::string& file_path);
+
+    std::string handleGetRequest(const HttpRequest& request);
+    std::string handlePostRequest(const HttpRequest& request);
+    std::string handleDeleteRequest(const HttpRequest& request);
+    std::string handleDirectoryRequest(const std::string& dir_path, const std::string& uri);
+    std::string generateSuccessResponse(const std::string& content, const std::string& content_type);
+
+    std::string handleHeadRequest(const HttpRequest& request);
+
 
 public:
     WebServer();

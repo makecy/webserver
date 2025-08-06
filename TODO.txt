@@ -1,6 +1,11 @@
 
 working																				author
 
+ana		added proper GET/HEAD request handling added 404/403 error responses 
+
+ana		currently trying to fix generateResponse to map the request URI to a file 
+		path using the server's root and index from config.
+
 ana		server now waits for the complete request body. i fixed the function		ana
 		handleClientData, now it waits for complete Content-Length and wont
 		process until body is complete. It also handles Content-Length: 0

@@ -29,6 +29,8 @@ bool HttpRequest::parseRequest(const std::string& raw_request) {
         _method = GET;
     } else if (method_str == "POST") {
         _method = POST;
+    } else if (method_str == "HEAD") {
+        _method = HEAD;
     } else if (method_str == "DELETE") {
         _method = DELETE;
     } else {
@@ -72,6 +74,8 @@ std::string HttpRequest::methodToString() const {
         case GET: return "GET";
         case POST: return "POST";
         case DELETE: return "DELETE";
-        default: return "UNKNOWN";
+        case HEAD: return "HEAD";     // Add this line
+        case UNKNOWN: return "UNKNOWN";
     }
+    return "UNKNOWN";
 }

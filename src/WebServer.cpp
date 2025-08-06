@@ -249,23 +249,23 @@ void WebServer::sendResponse(int client_fd, const std::string& response) {
 }
 
 std::string WebServer::generateResponse(const HttpRequest& request) {
-	LOG_DEBUG("Generating response for " + request.methodToString() + " " + request.getUri());
-	
-	std::string body = "<html><body>";
-	body += "<h1>Webserv Response</h1>";
-	body += "<p>Method: " + request.methodToString() + "</p>";
-	body += "<p>URI: " + request.getUri() + "</p>";
-	body += "<p>Version: " + request.getVersion() + "</p>";
-	body += "</body></html>";
-	
-	std::string response = "HTTP/1.1 200 OK\r\n";
-	response += "Content-Type: text/html\r\n";
-	response += "Content-Length: " + toString(body.length()) + "\r\n";
-	response += "Connection: close\r\n";
-	response += "\r\n";
-	response += body;
-	
-	return response;
+    std::string method = request.methodToString();
+    std::string uri = request.getUri();
+    
+    std::cout << "Processing: " << method << " " << uri << std::endl;
+    
+    // Handle different HTTP methods
+    if (request.getMethod() == GET) {
+        return handleGetRequest(request);
+    } else if (request.getMethod() == HEAD) {        // Add this
+        return handleHeadRequest(request);           // Add this
+    } else if (request.getMethod() == POST) {
+        return handlePostRequest(request);
+    } else if (request.getMethod() == DELETE) {
+        return handleDeleteRequest(request);
+    } else {
+        return generateErrorResponse(405, "Method Not Allowed");
+    }
 }
 
 std::string WebServer::toString(size_t value) {
@@ -320,6 +320,184 @@ std::string WebServer::generateErrorResponse(int status_code, const std::string&
 	response += body;
 	
 	return response;
+}
+
+std::string WebServer::getContentType(const std::string& file_path) {
+    size_t dot_pos = file_path.find_last_of('.');
+    if (dot_pos == std::string::npos) {
+        return "application/octet-stream";
+    }
+    
+    std::string extension = file_path.substr(dot_pos);
+    
+    // Convert to lowercase for comparison
+    for (size_t i = 0; i < extension.length(); ++i) {
+        extension[i] = std::tolower(extension[i]);
+    }
+    
+    if (extension == ".html" || extension == ".htm") return "text/html";
+    if (extension == ".css") return "text/css";
+    if (extension == ".js") return "application/javascript";
+    if (extension == ".json") return "application/json";
+    if (extension == ".txt") return "text/plain";
+    if (extension == ".png") return "image/png";
+    if (extension == ".jpg" || extension == ".jpeg") return "image/jpeg";
+    if (extension == ".gif") return "image/gif";
+    if (extension == ".ico") return "image/x-icon";
+    
+    return "application/octet-stream";
+}
+
+std::string WebServer::getFilePath(const std::string& uri) {
+    // Get document root from config (assuming you have this)
+    std::string root = "./www"; // Default, should come from config
+    
+    // Handle root URI
+    if (uri == "/") {
+        return root + "/index.html";
+    }
+    
+    // Prevent directory traversal attacks
+    std::string clean_uri = uri;
+    size_t pos = 0;
+    while ((pos = clean_uri.find("../", pos)) != std::string::npos) {
+        clean_uri.erase(pos, 3);
+    }
+    
+    // Remove double slashes
+    pos = 0;
+    while ((pos = clean_uri.find("//", pos)) != std::string::npos) {
+        clean_uri.erase(pos, 1);
+    }
+    
+    return root + clean_uri;
+}
+
+
+bool WebServer::fileExists(const std::string& path) {
+	struct stat buffer;
+	return (stat(path.c_str(), &buffer) == 0);
+}
+
+bool WebServer::isDirectory(const std::string& path) {
+	struct stat buffer;
+	if (stat(path.c_str(), &buffer) != 0) {
+		return false;
+	}
+	return S_ISDIR(buffer.st_mode);
+}
+
+std::string WebServer::readFile(const std::string& file_path) {
+	std::ifstream file(file_path.c_str(), std::ios::binary);
+	if (!file.is_open()) {
+		LOG_ERROR("Cannot open file: " + file_path);
+		return "";
+	}
+	
+	// Read file contents efficiently
+	file.seekg(0, std::ios::end);
+	std::streamsize size = file.tellg();
+	file.seekg(0, std::ios::beg);
+	
+	std::string buffer(size, '\0');
+	if (!file.read(&buffer[0], size)) {
+		LOG_ERROR("Failed to read file: " + file_path);
+		return "";
+	}
+	
+	file.close();
+	return buffer;
+}
+
+std::string WebServer::handleGetRequest(const HttpRequest& request) {
+    std::string uri = request.getUri();
+    std::string file_path = getFilePath(uri);
+    
+    // Check if file exists
+    if (!fileExists(file_path)) {
+        return generateErrorResponse(404, "Not Found");
+    }
+    
+    // Handle directory requests
+    if (isDirectory(file_path)) {
+        return handleDirectoryRequest(file_path, uri);
+    }
+    
+    // Check if file is readable
+    if (access(file_path.c_str(), R_OK) != 0) {
+        return generateErrorResponse(403, "Forbidden");
+    }
+    
+    // Read and serve the file
+    std::string content = readFile(file_path);
+    if (content.empty() && fileExists(file_path)) {
+        return generateErrorResponse(500, "Internal Server Error");
+    }
+    
+    return generateSuccessResponse(content, getContentType(file_path));
+}
+
+std::string WebServer::handleDirectoryRequest(const std::string& dir_path, const std::string& /* uri */) {
+    // Try to find index files (index.html, index.htm)
+    std::vector<std::string> index_files;
+    index_files.push_back("index.html");
+    index_files.push_back("index.htm");
+    
+    for (size_t i = 0; i < index_files.size(); ++i) {
+        std::string index_path = dir_path;
+        if (index_path[index_path.length() - 1] != '/') {
+            index_path += "/";
+        }
+        index_path += index_files[i];
+        
+        if (fileExists(index_path) && access(index_path.c_str(), R_OK) == 0) {
+            std::string content = readFile(index_path);
+            if (!content.empty()) {
+                return generateSuccessResponse(content, "text/html");
+            }
+        }
+    }
+    
+    // No index file found
+    return generateErrorResponse(404, "Not Found");
+}
+
+std::string WebServer::handleHeadRequest(const HttpRequest& request) {
+    // HEAD is like GET but without the response body
+    std::string response = handleGetRequest(request);
+    
+    // Find the end of headers (double CRLF)
+    size_t header_end = response.find("\r\n\r\n");
+    if (header_end != std::string::npos) {
+        // Return only headers + the double CRLF (no body)
+        return response.substr(0, header_end + 4);
+    }
+    
+    return response; // Fallback if parsing fails
+}
+
+std::string WebServer::generateSuccessResponse(const std::string& content, const std::string& content_type) {
+    std::ostringstream response;
+    
+    response << "HTTP/1.1 200 OK\r\n";
+    response << "Content-Type: " << content_type << "\r\n";
+    response << "Content-Length: " << content.length() << "\r\n";
+    response << "Connection: close\r\n";
+    response << "Server: Webserv/1.0\r\n";
+    response << "\r\n";
+    response << content;
+    
+    return response.str();
+}
+
+std::string WebServer::handlePostRequest(const HttpRequest& /* request */) {
+    // For now, return 501 Not Implemented
+    return generateErrorResponse(501, "Not Implemented");
+}
+
+std::string WebServer::handleDeleteRequest(const HttpRequest& /* request */) {
+    // For now, return 501 Not Implemented
+    return generateErrorResponse(501, "Not Implemented");
 }
 
 void WebServer::cleanup() {
