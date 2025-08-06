@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <cstring>
 #include <cerrno>
+#include <cctype>
+#include <sstream>
 
 #include "WebServer.hpp"
 #include "Config.hpp"
@@ -33,8 +35,10 @@ class WebServer {
     void handleClientData(int client_fd, int poll_index);
     void sendResponse(int client_fd, const std::string& response);
     std::string generateResponse(const HttpRequest& request);
+    std::string generateErrorResponse(int status_code, const std::string& status_text);
     std::string getStatusMessage(int code);
     std::string toString(size_t value);
+    size_t getContentLength(const std::string& headers);
 
 public:
     WebServer();

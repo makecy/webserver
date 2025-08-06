@@ -179,29 +179,63 @@ void WebServer::handleClientData(int client_fd, int poll_index) {
 	
 	buffer[bytes_read] = '\0';
 	_client_buffers[client_fd] += buffer;
-	LOG_DEBUG("Buffer for client " + toString(client_fd) + ": [" + _client_buffers[client_fd] + "]");
+	LOG_DEBUG("Buffer for client " + toString(client_fd) + " now has " + toString(_client_buffers[client_fd].length()) + " bytes");
 
-	if ((_client_buffers[client_fd].find("\r\n\r\n") != std::string::npos)
-			|| (_client_buffers[client_fd].find("\n\n") != std::string::npos)) {
-		LOG_DEBUG("Full HTTP request received from client " + toString(client_fd));
+	std::string& client_buffer = _client_buffers[client_fd];
+	size_t header_end_pos = client_buffer.find("\r\n\r\n");
+	if (header_end_pos == std::string::npos) {
+		header_end_pos = client_buffer.find("\n\n");
+		if (header_end_pos != std::string::npos) {
+			header_end_pos += 2;
+		}
+	} else {
+		header_end_pos += 4;
+	}
+
+	if (header_end_pos == std::string::npos) {
+		LOG_DEBUG("Headers not complete yet, waiting for more data from client " + toString(client_fd));
+		return;
+	}
+
+	LOG_DEBUG("Headers complete, checking for request body...");
+
+	std::string headers = client_buffer.substr(0, header_end_pos);
+	size_t content_length = getContentLength(headers);
+	
+	LOG_DEBUG("Content-Length: " + toString(content_length));
+
+	size_t expected_total_size = header_end_pos + content_length;
+	size_t current_size = client_buffer.length();
+
+	LOG_DEBUG("Expected total size: " + toString(expected_total_size) + ", current size: " + toString(current_size));
+
+	if (current_size >= expected_total_size) {
+		LOG_DEBUG("Complete HTTP request received from client " + toString(client_fd));
+		
+		if (current_size > expected_total_size) {
+			client_buffer = client_buffer.substr(0, expected_total_size);
+			LOG_DEBUG("Trimmed buffer to exact request size");
+		}
+
 		HttpRequest request;
-		if (request.parseRequest(_client_buffers[client_fd])) {
+		if (request.parseRequest(client_buffer)) {
 			LOG_DEBUG("Request parsed successfully");
 			std::string response = generateResponse(request);
 			LOG_DEBUG("Generated response for client " + toString(client_fd));
 			sendResponse(client_fd, response);
 			LOG_DEBUG("Response sent to client " + toString(client_fd));
-		}
-		else {
+		} else {
 			LOG_ERROR("HTTP request parse error for client " + toString(client_fd));
+			std::string error_response = generateErrorResponse(400, "Bad Request");
+			sendResponse(client_fd, error_response);
 		}
+		
 		close(client_fd);
 		_poll_fds.erase(_poll_fds.begin() + poll_index);
 		_client_buffers.erase(client_fd);
 		LOG_INFO("Client " + toString(client_fd) + " connection closed");
-	}
-	else {
-		LOG_DEBUG("Waiting for more data from client " + toString(client_fd) + "...");
+	} else {
+		LOG_DEBUG("Waiting for " + toString(expected_total_size - current_size) + " more bytes from client " + toString(client_fd));
 	}
 }
 
@@ -238,6 +272,54 @@ std::string WebServer::toString(size_t value) {
 	std::ostringstream oss;
 	oss << value;
 	return oss.str();
+}
+
+size_t WebServer::getContentLength(const std::string& headers) {
+	std::string headers_lower = headers;
+	for (size_t i = 0; i < headers_lower.length(); ++i) {
+		headers_lower[i] = std::tolower(headers_lower[i]);
+	}
+	
+	size_t pos = headers_lower.find("content-length:");
+	if (pos == std::string::npos) {
+		return 0;
+	}
+
+	pos += 15;
+	while (pos < headers.length() && (headers[pos] == ' ' || headers[pos] == '\t')) {
+		pos++;
+	}
+	
+	size_t end_pos = headers.find('\r', pos);
+	if (end_pos == std::string::npos) {
+		end_pos = headers.find('\n', pos);
+	}
+	if (end_pos == std::string::npos) {
+		end_pos = headers.length();
+	}
+	
+	std::string value = headers.substr(pos, end_pos - pos);
+	
+	size_t content_length = 0;
+	std::istringstream iss(value);
+	iss >> content_length;
+	
+	return content_length;
+}
+
+std::string WebServer::generateErrorResponse(int status_code, const std::string& status_text) {
+	std::string body = "<html><body>";
+	body += "<h1>" + toString(status_code) + " " + status_text + "</h1>";
+	body += "</body></html>";
+	
+	std::string response = "HTTP/1.1 " + toString(status_code) + " " + status_text + "\r\n";
+	response += "Content-Type: text/html\r\n";
+	response += "Content-Length: " + toString(body.length()) + "\r\n";
+	response += "Connection: close\r\n";
+	response += "\r\n";
+	response += body;
+	
+	return response;
 }
 
 void WebServer::cleanup() {
