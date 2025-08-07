@@ -15,11 +15,15 @@
 #include "HttpRequest.hpp"
 #include <sstream>
 
-WebServer::WebServer() : _config(NULL) {
+WebServer::WebServer() {
+    _config = NULL;
+    _cgi_handler = new CgiHandler();
 }
 
 WebServer::~WebServer() {
-	cleanup();
+    cleanup();
+    delete _config;
+    delete _cgi_handler;
 }
 
 bool WebServer::initialize(const std::string& config_file) {
@@ -404,20 +408,30 @@ std::string WebServer::readFile(const std::string& file_path) {
 
 std::string WebServer::handleGetRequest(const HttpRequest& request) {
     std::string uri = request.getUri();
+    
+    // Check for CGI request first
+    if (_cgi_handler && _cgi_handler->isCgiRequest(uri)) {
+        return _cgi_handler->handleCgiRequest(request);
+    }
+    
     std::string file_path = getFilePath(uri);
     
+    // Check if file exists
     if (!fileExists(file_path)) {
         return generateErrorResponse(404, "Not Found");
     }
     
+    // Handle directory requests
     if (isDirectory(file_path)) {
         return handleDirectoryRequest(file_path, uri);
     }
     
+    // Check if file is readable
     if (access(file_path.c_str(), R_OK) != 0) {
         return generateErrorResponse(403, "Forbidden");
     }
     
+    // Read and serve the file
     std::string content = readFile(file_path);
     if (content.empty() && fileExists(file_path)) {
         return generateErrorResponse(500, "Internal Server Error");
@@ -475,19 +489,28 @@ std::string WebServer::generateSuccessResponse(const std::string& content, const
 
 std::string WebServer::handlePostRequest(const HttpRequest& request) {
     std::string uri = request.getUri();
+    
+    // Check for CGI request first
+    if (_cgi_handler && _cgi_handler->isCgiRequest(uri)) {
+        return _cgi_handler->handleCgiRequest(request);
+    }
+    
     std::string body = request.getBody();
     
     std::cout << "POST request for: " << uri << std::endl;
     std::cout << "Body length: " << body.length() << std::endl;
     
+    // Simple file upload handling - save POST data to a file
     if (uri.find("/upload") == 0) {
         return handleFileUpload(request);
     }
     
+    // Simple form processing
     if (uri.find("/form") == 0) {
         return handleFormSubmission(request);
     }
     
+    // Default: echo the received data
     return handlePostEcho(request);
 }
 

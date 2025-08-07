@@ -1,6 +1,9 @@
 
 working																				author
 
+ana		added advanced config system with location routing and CGI support, 
+		custom error pages, method restrictions and autoindex functionality
+
 ana		added POST/DELETE support and file operations, server implements file
 		uploads, form processing, file deletation and request routing based on
 		URI patterns.

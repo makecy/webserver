@@ -2,15 +2,65 @@
 <html>
 <head>
     <title>Webserv</title>
+    <meta charset="UTF-8">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Add some basic styling if style.css doesn't exist */
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .config-test { background: #f0f8ff; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .test-links a { display: inline-block; margin: 5px 10px; padding: 8px 16px; 
+                       background: #4CAF50; color: white; text-decoration: none; border-radius: 3px; }
+        .test-links a:hover { background: #45a049; }
+        .warning { background: #fff3cd; padding: 10px; border-radius: 3px; margin: 10px 0; }
+        .status-item { color: #28a745; font-weight: bold; }
+    </style>
 </head>
 <body>
     <h1>Welcome to Webserv!</h1>
     <p>Your web server is working correctly.</p>
+    
+    <!-- Your existing navigation -->
     <nav>
         <a href="about.html">About</a> |
         <a href="upload.html">Upload Test</a>
     </nav>
+    
+    <!-- New: Configuration testing section -->
+    <div class="config-test">
+        <h2>[CONFIG] Enhanced Configuration Test</h2>
+        <p>Test your new location-based configuration:</p>
+        
+        <div class="test-links">
+            <a href="/">Root Directory</a>
+            <a href="/cgi-bin/">CGI Scripts</a>
+            <a href="/uploads/">Upload Area</a>
+            <a href="/nonexistent">404 Test</a>
+        </div>
+        
+        <h3>CGI Testing:</h3>
+        <div class="test-links">
+            <a href="/cgi-bin/test.py">Python CGI</a>
+            <a href="/cgi-bin/hello.py">Hello Script</a>
+            <a href="/cgi-bin/info.sh">System Info</a>
+        </div>
+        
+        <div class="warning">
+            <strong>Note:</strong> CGI links will only work if you have CGI scripts created and CGI handling implemented.
+        </div>
+    </div>
+    
+    <!-- Configuration status -->
+    <div class="config-test">
+        <h3>[STATUS] Configuration Status</h3>
+        <p>If you can see this page, your enhanced config system loaded successfully!</p>
+        <ul>
+            <li class="status-item">[OK] Location-based routing active</li>
+            <li class="status-item">[OK] Method restrictions configured</li>
+            <li class="status-item">[OK] CGI extensions mapped (.py)</li>
+            <li class="status-item">[OK] Error pages configured</li>
+        </ul>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

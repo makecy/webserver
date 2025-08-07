@@ -21,9 +21,11 @@
 #include "WebServer.hpp"
 #include "Config.hpp"
 #include "utils.hpp"
+#include "CgiHandler.hpp"
 
 class Config;
 class HttpRequest;
+class CgiHandler;
 
 class WebServer {
 	private:
@@ -31,6 +33,7 @@ class WebServer {
     std::vector<int> _server_sockets;
     std::map<int, std::string> _client_buffers;
     Config* _config;
+    CgiHandler* _cgi_handler;
     
     int createServerSocket(const std::string& host, int port);
     void handleNewConnection(int server_fd);
@@ -42,19 +45,22 @@ class WebServer {
     std::string toString(size_t value);
     size_t getContentLength(const std::string& headers);
 
+    // File operations
     std::string getContentType(const std::string& file_path);
     std::string getFilePath(const std::string& uri);
     bool fileExists(const std::string& path);
     bool isDirectory(const std::string& path);
     std::string readFile(const std::string& file_path);
 
+    // HTTP method handlers
     std::string handleGetRequest(const HttpRequest& request);
     std::string handlePostRequest(const HttpRequest& request);
     std::string handleDeleteRequest(const HttpRequest& request);
     std::string handleDirectoryRequest(const std::string& dir_path, const std::string& uri);
     std::string generateSuccessResponse(const std::string& content, const std::string& content_type);
-
     std::string handleHeadRequest(const HttpRequest& request);
+
+    // POST request handlers
     std::string handleFileUpload(const HttpRequest& request);
     std::string handleFormSubmission(const HttpRequest& request);
     std::string handlePostEcho(const HttpRequest& request);

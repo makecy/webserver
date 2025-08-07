@@ -1,0 +1,12 @@
+#!/bin/bash
+echo "Content-Type: text/html"
+echo ""
+echo "<html><body>"
+echo "<h1>System Information</h1>"
+echo "<p>Date: $(date)</p>"
+echo "<p>User: $(whoami)</p>"
+echo "<p>Working Directory: $(pwd)</p>"
+echo "<p>Request Method: $REQUEST_METHOD</p>"
+echo "<p>Request URI: $REQUEST_URI</p>"
+echo "<p>Server: $SERVER_SOFTWARE</p>"
+echo "</body></html>"

@@ -1,24 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Upload Test</title>
+    <title>Upload Test - Webserv</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Test Upload</h1>
+    <h1>Upload Test</h1>
+    <p>This tests the upload functionality configured for /uploads location.</p>
     
-    <h2>File Upload</h2>
-    <form action="/upload" method="POST">
-        <textarea name="content" rows="5" cols="50">Type your content here...</textarea><br>
-        <input type="submit" value="Upload">
+    <form action="/uploads/" method="post" enctype="multipart/form-data">
+        <p>Select file to upload:</p>
+        <input type="file" name="fileToUpload" id="fileToUpload">
+        <br><br>
+        <input type="submit" value="Upload File" name="submit">
     </form>
     
-    <h2>Form Submission</h2>
-    <form action="/form" method="POST">
-        <input type="text" name="name" placeholder="Your name"><br>
-        <input type="email" name="email" placeholder="Your email"><br>
-        <input type="submit" value="Submit">
-    </form>
-    
-    <p><a href="/">Back to home</a></p>
+    <p><strong>Note:</strong> Upload functionality requires server-side implementation.</p>
+    <p><a href="/">← Back to Home</a></p>
 </body>
 </html>
