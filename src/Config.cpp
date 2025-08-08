@@ -331,20 +331,33 @@ const ServerConfig* Config::findServerConfig(const std::string& host, int port, 
     return _servers.empty() ? NULL : &_servers[0];
 }
 
-const LocationConfig* Config::findLocationConfig(const ServerConfig& server, const std::string& uri) const {
-    const LocationConfig* best_match = NULL;
-    size_t best_match_length = 0;
+const LocationConfig* Config::findLocationConfig(const ServerConfig& server, const std::string& path) const {
+    const LocationConfig* bestMatch = NULL;
+    size_t bestMatchLength = 0;
     
-    for (std::vector<LocationConfig>::const_iterator it = server.locations.begin(); it != server.locations.end(); ++it) {
-        if (uri.find(it->path) == 0) {
-            if (it->path.length() > best_match_length) {
-                best_match = &(*it);
-                best_match_length = it->path.length();
+    for (std::vector<LocationConfig>::const_iterator it = server.locations.begin(); 
+         it != server.locations.end(); ++it) {
+        const std::string& locPath = it->path;
+        
+        // Exact match has highest priority
+        if (path == locPath) {
+            return &(*it);
+        }
+        
+        // Check if this location is a prefix match
+        if (path.substr(0, locPath.length()) == locPath) {
+            // For prefix matches, ensure we're matching at path boundaries
+            if (locPath == "/" || path.length() == locPath.length() || path[locPath.length()] == '/') {
+                // Prefer longer matches (more specific)
+                if (locPath.length() > bestMatchLength) {
+                    bestMatch = &(*it);
+                    bestMatchLength = locPath.length();
+                }
             }
         }
     }
     
-    return best_match;
+    return bestMatch;
 }
 
 bool Config::validateConfig() const {
@@ -391,4 +404,18 @@ void Config::printConfig() const {
         }
         std::cout << std::endl;
     }
+}
+
+bool Config::isMethodAllowed(const std::string& method, const LocationConfig* location) const {
+    if (!location) return true; // No location restrictions
+    
+    const std::vector<std::string>& allowedMethods = location->allowed_methods;
+    if (allowedMethods.empty()) return true; // No method restrictions
+    
+    // Check if method is in allowed list
+    for (std::vector<std::string>::const_iterator it = allowedMethods.begin(); 
+         it != allowedMethods.end(); ++it) {
+        if (*it == method) return true;
+    }
+    return false;
 }

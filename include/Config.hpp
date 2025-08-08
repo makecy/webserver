@@ -9,7 +9,6 @@
 #include <sstream>
 #include <algorithm>
 
-#include "WebServer.hpp"
 
 struct LocationConfig {
     std::string path;
@@ -63,7 +62,7 @@ private:
     bool isLocationEnd(const std::string& line);
     std::string extractLocationPath(const std::string& line);
     std::vector<std::string> splitLine(const std::string& line);
-    
+        
 public:
     Config();
     ~Config();
@@ -75,6 +74,7 @@ public:
 
     const ServerConfig* findServerConfig(const std::string& host, int port, const std::string& server_name = "") const;
     const LocationConfig* findLocationConfig(const ServerConfig& server, const std::string& uri) const;
+    bool isMethodAllowed(const std::string& method, const LocationConfig* location) const;
 
     bool validateConfig() const;
     void printConfig() const;

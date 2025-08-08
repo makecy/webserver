@@ -1,14 +1,17 @@
 
 working																				author
 
-ana		added advanced config system with location routing and CGI support, 
+ana		enhanced configuration system with detailed method controls per location.	ana
+		returns proper 405/403 HTTP status codes for violations.
+
+ana		added advanced config system with location routing and CGI support,			ana
 		custom error pages, method restrictions and autoindex functionality
 
-ana		added POST/DELETE support and file operations, server implements file
+ana		added POST/DELETE support and file operations, server implements file		ana
 		uploads, form processing, file deletation and request routing based on
 		URI patterns.
 
-ana		added proper GET/HEAD request handling, added 404/403 error responses,
+ana		added proper GET/HEAD request handling, added 404/403 error responses,		ana
 		static file serving from www/ directory
 
 ana		currently trying to fix generateResponse to map the request URI to a file 

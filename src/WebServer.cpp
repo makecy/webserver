@@ -258,14 +258,45 @@ std::string WebServer::generateResponse(const HttpRequest& request) {
     
     std::cout << "Processing: " << method << " " << uri << std::endl;
     
+    // Handle unknown methods
+    if (method == "UNKNOWN") {
+        return generateErrorResponse(405, "Method Not Allowed");
+    }
+    
+    // Find server config (use first server for now - can be enhanced later)
+    const ServerConfig* server_config = NULL;
+    if (!_config->getServers().empty()) {
+        server_config = &_config->getServers()[0];
+    }
+    
+    if (!server_config) {
+        return generateErrorResponse(500, "Internal Server Error");
+    }
+    
+    // Find best matching location from config
+    const LocationConfig* location = _config->findLocationConfig(*server_config, uri);
+    if (location) {
+        std::cout << "Matched location: " << location->path << std::endl;
+        std::cout << "Location root: " << location->root << std::endl;
+    } else {
+        std::cout << "No location match found, using server defaults" << std::endl;
+    }
+    
+    // Check method restrictions
+    if (!_config->isMethodAllowed(method, location)) {
+        std::cout << "Method " << method << " not allowed for this location" << std::endl;
+        return generateErrorResponse(405, "Method Not Allowed");
+    }
+    
+    // Route to method-specific handlers with location context
     if (request.getMethod() == GET) {
-        return handleGetRequest(request);
+        return handleGetRequest(request, location);
     } else if (request.getMethod() == HEAD) {
-        return handleHeadRequest(request);
+        return handleHeadRequest(request, location);
     } else if (request.getMethod() == POST) {
-        return handlePostRequest(request);
+        return handlePostRequest(request, location);
     } else if (request.getMethod() == DELETE) {
-        return handleDeleteRequest(request);
+        return handleDeleteRequest(request, location);
     } else {
         return generateErrorResponse(405, "Method Not Allowed");
     }
@@ -350,25 +381,27 @@ std::string WebServer::getContentType(const std::string& file_path) {
     return "application/octet-stream";
 }
 
-std::string WebServer::getFilePath(const std::string& uri) {
-    std::string root = "./www";
+std::string WebServer::getFilePath(const std::string& uri, const LocationConfig* location) {
+    std::string root;
     
-    if (uri == "/") {
-        return root + "/index.html";
+    // Use location-specific root if available, otherwise server default
+    if (location && !location->root.empty()) {
+        root = location->root;
+        // Remove the location path from URI to get relative path
+        std::string relative_path = uri;
+        if (uri.find(location->path) == 0) {
+            relative_path = uri.substr(location->path.length());
+            if (relative_path.empty()) relative_path = "/";
+        }
+        return root + relative_path;
+    } else {
+        // Use server root (your existing logic)
+        root = "./www";
+        if (uri == "/") {
+            return root + "/index.html";
+        }
+        return root + uri;
     }
-    
-    std::string clean_uri = uri;
-    size_t pos = 0;
-    while ((pos = clean_uri.find("../", pos)) != std::string::npos) {
-        clean_uri.erase(pos, 3);
-    }
-
-    pos = 0;
-    while ((pos = clean_uri.find("//", pos)) != std::string::npos) {
-        clean_uri.erase(pos, 1);
-    }
-    
-    return root + clean_uri;
 }
 
 
@@ -406,32 +439,33 @@ std::string WebServer::readFile(const std::string& file_path) {
 	return buffer;
 }
 
-std::string WebServer::handleGetRequest(const HttpRequest& request) {
+std::string WebServer::handleGetRequest(const HttpRequest& request, const LocationConfig* location) {
     std::string uri = request.getUri();
     
     // Check for CGI request first
-    if (_cgi_handler && _cgi_handler->isCgiRequest(uri)) {
+    if (location && !location->cgi_path.empty() && 
+        uri.find(location->cgi_extension) != std::string::npos) {
+        // Use location-specific CGI handling
+        return _cgi_handler->handleCgiRequest(request);
+    } else if (_cgi_handler && _cgi_handler->isCgiRequest(uri)) {
         return _cgi_handler->handleCgiRequest(request);
     }
     
-    std::string file_path = getFilePath(uri);
+    std::string file_path = getFilePath(uri, location);
     
-    // Check if file exists
+    // Rest of your existing GET logic...
     if (!fileExists(file_path)) {
         return generateErrorResponse(404, "Not Found");
     }
     
-    // Handle directory requests
     if (isDirectory(file_path)) {
-        return handleDirectoryRequest(file_path, uri);
+        return handleDirectoryRequest(file_path, uri, location);
     }
     
-    // Check if file is readable
     if (access(file_path.c_str(), R_OK) != 0) {
         return generateErrorResponse(403, "Forbidden");
     }
     
-    // Read and serve the file
     std::string content = readFile(file_path);
     if (content.empty() && fileExists(file_path)) {
         return generateErrorResponse(500, "Internal Server Error");
@@ -440,10 +474,15 @@ std::string WebServer::handleGetRequest(const HttpRequest& request) {
     return generateSuccessResponse(content, getContentType(file_path));
 }
 
-std::string WebServer::handleDirectoryRequest(const std::string& dir_path, const std::string& /* uri */) {
+std::string WebServer::handleDirectoryRequest(const std::string& dir_path, const std::string& /* uri */, const LocationConfig* location) {
+    // Use location-specific index if available
     std::vector<std::string> index_files;
-    index_files.push_back("index.html");
-    index_files.push_back("index.htm");
+    if (location && !location->index.empty()) {
+        index_files.push_back(location->index);
+    } else {
+        index_files.push_back("index.html");
+        index_files.push_back("index.htm");
+    }
     
     for (size_t i = 0; i < index_files.size(); ++i) {
         std::string index_path = dir_path;
@@ -462,14 +501,12 @@ std::string WebServer::handleDirectoryRequest(const std::string& dir_path, const
     return generateErrorResponse(404, "Not Found");
 }
 
-std::string WebServer::handleHeadRequest(const HttpRequest& request) {
-    std::string response = handleGetRequest(request);
-
+std::string WebServer::handleHeadRequest(const HttpRequest& request, const LocationConfig* location) {
+    std::string response = handleGetRequest(request, location);
     size_t header_end = response.find("\r\n\r\n");
     if (header_end != std::string::npos) {
         return response.substr(0, header_end + 4);
     }
-    
     return response;
 }
 
@@ -487,11 +524,14 @@ std::string WebServer::generateSuccessResponse(const std::string& content, const
     return response.str();
 }
 
-std::string WebServer::handlePostRequest(const HttpRequest& request) {
+std::string WebServer::handlePostRequest(const HttpRequest& request, const LocationConfig* location) {
     std::string uri = request.getUri();
     
     // Check for CGI request first
-    if (_cgi_handler && _cgi_handler->isCgiRequest(uri)) {
+    if (location && !location->cgi_path.empty() && 
+        uri.find(location->cgi_extension) != std::string::npos) {
+        return _cgi_handler->handleCgiRequest(request);
+    } else if (_cgi_handler && _cgi_handler->isCgiRequest(uri)) {
         return _cgi_handler->handleCgiRequest(request);
     }
     
@@ -514,9 +554,9 @@ std::string WebServer::handlePostRequest(const HttpRequest& request) {
     return handlePostEcho(request);
 }
 
-std::string WebServer::handleDeleteRequest(const HttpRequest& request) {
+std::string WebServer::handleDeleteRequest(const HttpRequest& request, const LocationConfig* location) {
     std::string uri = request.getUri();
-    std::string file_path = getFilePath(uri);
+    std::string file_path = getFilePath(uri, location);
     
     std::cout << "DELETE request for: " << file_path << std::endl;
     
