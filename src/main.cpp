@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
     std::string config_file = "config/default.conf";
     
     if (argc > 2) {
-        log_error("usage: ./webserv <config file>");
+        log_error("Usage: ./webserv <config file>");
         return 1;
     }
     
