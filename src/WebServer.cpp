@@ -14,6 +14,7 @@
 #include "Config.hpp"
 #include "HttpRequest.hpp"
 #include <sstream>
+#include <dirent.h>
 
 WebServer::WebServer() {
     _config = NULL;
@@ -441,8 +442,15 @@ std::string WebServer::readFile(const std::string& file_path) {
 
 std::string WebServer::handleGetRequest(const HttpRequest& request, const LocationConfig* location) {
     std::string uri = request.getUri();
-    
+    std::string file_path = getFilePath(uri, location);
+
+	std::cout << "GET request - URI: " << uri << " -> File path: " << file_path << std::endl;
     // Check for CGI request first
+	if (uri == "/cgi-bin/" || uri == "/cgi-bin"){
+		std::string cgi_dir = "./www/cgi-bin";
+		if (isDirectory(cgi_dir))
+			return handleDirectoryRequest(cgi_dir, uri, location);
+	}
     if (location && !location->cgi_path.empty() && 
         uri.find(location->cgi_extension) != std::string::npos) {
         // Use location-specific CGI handling
@@ -451,9 +459,8 @@ std::string WebServer::handleGetRequest(const HttpRequest& request, const Locati
         return _cgi_handler->handleCgiRequest(request);
     }
     
-    std::string file_path = getFilePath(uri, location);
+    // std::string file_path = getFilePath(uri, location);
     
-    // Rest of your existing GET logic...
     if (!fileExists(file_path)) {
         return generateErrorResponse(404, "Not Found");
     }
@@ -474,7 +481,7 @@ std::string WebServer::handleGetRequest(const HttpRequest& request, const Locati
     return generateSuccessResponse(content, getContentType(file_path));
 }
 
-std::string WebServer::handleDirectoryRequest(const std::string& dir_path, const std::string& /* uri */, const LocationConfig* location) {
+std::string WebServer::handleDirectoryRequest(const std::string& dir_path, const std::string& uri , const LocationConfig* location) {
     // Use location-specific index if available
     std::vector<std::string> index_files;
     if (location && !location->index.empty()) {
@@ -490,15 +497,45 @@ std::string WebServer::handleDirectoryRequest(const std::string& dir_path, const
             index_path += "/";
         }
         index_path += index_files[i];
+
+		std::cout << "Trying index file: " << index_path << std::endl;
         
         if (fileExists(index_path) && access(index_path.c_str(), R_OK) == 0) {
             std::string content = readFile(index_path);
             if (!content.empty()) {
+				std::cout << "Found index file: " << index_path << std::endl;
                 return generateSuccessResponse(content, "text/html");
             }
         }
     }
-    return generateErrorResponse(404, "Not Found");
+	std::cout << "No index file found in directory: " << dir_path << std::endl;
+
+	if (location && location->autoindex)
+		return generateDirectoryListing(dir_path, uri);
+    return generateErrorResponse(403, "Forbidden");
+}
+
+std::string WebServer::generateDirectoryListing(const std::string& dir_path, const std::string& uri) {
+    std::ostringstream html;
+    html << "<html><head><title>Index of " << uri << "</title></head><body>";
+    html << "<h1>Index of " << uri << "</h1><hr><pre>";
+    
+    DIR* dir = opendir(dir_path.c_str());
+    if (dir) {
+        struct dirent* entry;
+        while ((entry = readdir(dir)) != NULL) {
+            std::string name = entry->d_name;
+            if (name != ".") {
+                html << "<a href=\"" << uri;
+                if (uri[uri.length()-1] != '/') html << "/";
+                html << name << "\">" << name << "</a>\n";
+            }
+        }
+        closedir(dir);
+    }
+    
+    html << "</pre><hr></body></html>";
+    return generateSuccessResponse(html.str(), "text/html");
 }
 
 std::string WebServer::handleHeadRequest(const HttpRequest& request, const LocationConfig* location) {
@@ -609,7 +646,7 @@ std::string WebServer::handleFileUpload(const HttpRequest& request) {
     
     outfile << body;
     outfile.close();
-	
+
 	std::string body_content = "<html><body><h1>File uploaded successfully</h1>";
     body_content += "<p>Saved as: " + filename.str() + "</p></body></html>";
     

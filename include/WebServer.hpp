@@ -20,7 +20,7 @@ struct ServerConfig;
 #include <sstream>
 #include <fstream>
 #include <sys/stat.h>
-
+#include <sys/types.h>
 #include "Config.hpp"
 #include "utils.hpp"
 #include "CgiHandler.hpp"
@@ -61,6 +61,7 @@ class WebServer {
     std::string handlePostRequest(const HttpRequest& request, const LocationConfig* location = NULL);
     std::string handleDeleteRequest(const HttpRequest& request, const LocationConfig* location = NULL);
     std::string handleDirectoryRequest(const std::string& dir_path, const std::string& uri, const LocationConfig* location = NULL);
+    std::string generateDirectoryListing(const std::string& dir_path, const std::string& uri);
     std::string generateSuccessResponse(const std::string& content, const std::string& content_type);
 
     // POST request handlers

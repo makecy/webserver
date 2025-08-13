@@ -29,3 +29,6 @@ chris	server looks for "\r\n\r\n" or "\n\n" and then just handles the buffer 		c
 			immediately too, but it reads request bodies, when actually needed.
 
 chris	more functional config parsing, i think i focus on this for now		 		chris
+
+martin	fix the Upload Area and Upload Test only works when clicking on				martin 
+		Upload Area first, before it shows 404 Not Found
