@@ -609,22 +609,21 @@ std::string WebServer::handleFileUpload(const HttpRequest& request) {
     
     outfile << body;
     outfile.close();
+	
+	std::string body_content = "<html><body><h1>File uploaded successfully</h1>";
+    body_content += "<p>Saved as: " + filename.str() + "</p></body></html>";
     
     std::ostringstream response;
     response << "HTTP/1.1 201 Created\r\n";
     response << "Content-Type: text/html\r\n";
+    response << "Content-Length: " << body_content.length() << "\r\n";
     response << "Location: /uploads/" << filename.str() << "\r\n";
     response << "Connection: close\r\n";
     response << "Server: Webserv/1.0\r\n";
     response << "\r\n";
-    response << "<html><body><h1>File uploaded successfully</h1>";
-    response << "<p>Saved as: " << filename.str() << "</p></body></html>";
+    response << body_content;
     
-    std::string resp = response.str();
-    response.str("");
-    response << "Content-Length: " << (resp.length() - resp.find("\r\n\r\n") - 4) << "\r\n";
-    
-    return resp;
+    return response.str();
 }
 
 std::string WebServer::handleFormSubmission(const HttpRequest& request) {
