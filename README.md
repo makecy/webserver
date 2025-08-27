@@ -8,4 +8,5 @@ Safari → Preferences (or Cmd + ,)
 Click Advanced tab      
 Check ✅ "Show Develop menu in menu bar"      
 Close Preferences      
-right click on webpage -> inspect elements
+right click on webpage -> inspect elements      
+redirect URL ???
