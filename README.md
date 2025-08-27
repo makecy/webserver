@@ -12,8 +12,8 @@ right click on webpage -> inspect elements
 redirect URL ???
 
 
-
-https://claude.ai/api/da870de7-ccba-4199-8d88-fae34eb1d9bd/files/c24b1784-a7ce-4ed6-a6e9-711a03404043/preview<img width="786" height="426" alt="image" src="https://github.com/user-attachments/assets/82f5d95b-34bf-48a8-816a-148cfa8a5ab1" />
+[
+](https://claude.ai/api/da870de7-ccba-4199-8d88-fae34eb1d9bd/files/c24b1784-a7ce-4ed6-a6e9-711a03404043/preview)<img width="786" height="426" alt="image" src="https://github.com/user-attachments/assets/82f5d95b-34bf-48a8-816a-148cfa8a5ab1" />
 
 
 watch -n 2 "ps -o pid,cmd,%mem,%cpu -C webserv"      
